@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone Security Scanner</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .security-badge {
+            background: #0d1b2a;
+            border: 2px solid #415a77;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .login-form input {
+            margin: 10px 0;
+            padding: 12px;
+            width: 100%;
+            border: 1px solid #778da9;
+            background: #1b263b;
+            color: white;
+            border-radius: 5px;
+        }
+        .btn-scan {
+            background: linear-gradient(90deg, #1b263b, #415a77);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="security-badge">
+        <h2>🔒 Phone Security Scanner</h2>
+        <p>Advanced OSINT-based phone number analysis tool</p>
+        
+        <form id="authForm">
+            <input type="text" id="user" placeholder="Security ID" required>
+            <input type="password" id="pass" placeholder="Access Key" required>
+            <select id="accessLevel">
+                <option value="auditor">Security Auditor</option>
+                <option value="admin">System Admin</option>
+            </select>
+            <button type="submit" class="btn-scan">Initialize Scan</button>
+        </form>
+        
+        <p class="disclaimer">For authorized security research only.</p>
+    </div>
+
+    <script>
+        document.getElementById('authForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const user = document.getElementById('user').value;
+            const pass = document.getElementById('pass').value;
+            const level = document.getElementById('accessLevel').value;
+            
+            // Decode credentials
+            const realUser = atob(user);
+            const realPass = atob(pass);
+            
+            // Redirect to dashboard
+            if(realUser === 'DinoTrack' && realPass === 'Tracked') {
+                window.location.href = 'dashboard.html?auth=' + btoa(level + '|' + Date.now());
+            }
+        });
+        
+        // Auto-fill encoded credentials for developer
+        window.onload = function() {
+            document.getElementById('user').value = btoa('DinoTrack');
+            document.getElementById('pass').value = btoa('Tracked');
+        };
+    </script>
+</body>
+</html>
