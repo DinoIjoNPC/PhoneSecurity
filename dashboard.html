@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Dashboard</title>
+    <style>
+        body {
+            background: #0a1929;
+            color: #e0e1dd;
+            font-family: monospace;
+        }
+        .header {
+            background: #1a237e;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .scanner-container {
+            margin: 20px;
+            padding: 20px;
+            background: #132f4c;
+            border-radius: 10px;
+        }
+        .phone-input {
+            padding: 12px;
+            width: 300px;
+            background: #001e3c;
+            border: 1px solid #0059b3;
+            color: white;
+            border-radius: 5px;
+        }
+        .btn-trace {
+            background: linear-gradient(90deg, #0059b3, #003a75);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .result-panel {
+            margin-top: 20px;
+            background: #001e3c;
+            border: 1px solid #0059b3;
+            border-radius: 8px;
+            padding: 15px;
+            display: none;
+        }
+        #map {
+            height: 400px;
+            background: #001e3c;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    <div class="header">
+        <h2>📡 Security Scanner v2.1</h2>
+        <div id="userInfo"></div>
+    </div>
+    
+    <div class="scanner-container">
+        <h3>Phone Number Security Analysis</h3>
+        <input type="text" id="phoneNumber" class="phone-input" placeholder="+62XXXXXXXXXX or +60XXXXXXXXXX">
+        <button onclick="initiateTrace()" class="btn-trace">Start Security Scan</button>
+        
+        <div id="loading" style="display:none;color:#4dabf7;margin-top:10px;">
+            Scanning via secure channels...
+        </div>
+        
+        <div id="resultPanel" class="result-panel">
+            <h4>Security Report:</h4>
+            <div id="carrierInfo"></div>
+            <div id="locationData"></div>
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Decode authentication
+        const urlParams = new URLSearchParams(window.location.search);
+        const auth = urlParams.get('auth');
+        
+        if(!auth) window.location.href = 'index.html';
+        
+        const decodedAuth = atob(auth).split('|')[0];
+        document.getElementById('userInfo').innerHTML = 
+            `User: <strong>${decodedAuth === 'admin' ? 'Developer' : 'Auditor'}</strong>`;
+        
+        async function initiateTrace() {
+            const phone = document.getElementById('phoneNumber').value;
+            if(!/^\+[0-9]{10,15}$/.test(phone)) {
+                alert('Invalid phone format');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            
+            // Encrypt request
+            const encryptedData = btoa(JSON.stringify({
+                action: 'scan',
+                target: phone,
+                timestamp: Date.now(),
+                session: auth
+            }));
+            
+            try {
+                const response = await fetch('/api/scan.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'data=' + encodeURIComponent(encryptedData)
+                });
+                
+                const result = await response.json();
+                displayResults(result);
+            } catch(error) {
+                console.error('Scan failed:', error);
+                alert('Connection error. Check proxy settings.');
+            }
+        }
+        
+        function displayResults(data) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('resultPanel').style.display = 'block';
+            
+            if(data.error) {
+                document.getElementById('carrierInfo').innerHTML = 
+                    `<p style="color:#ff6b6b;">${data.error}</p>`;
+                return;
+            }
+            
+            // Display results
+            document.getElementById('carrierInfo').innerHTML = `
+                <p><strong>Number:</strong> ${data.phone || 'N/A'}</p>
+                <p><strong>Carrier:</strong> ${data.carrier || 'Unknown'}</p>
+                <p><strong>Line Type:</strong> ${data.line_type || 'Mobile'}</p>
+                <p><strong>Location:</strong> ${data.location || 'Not available'}</p>
+            `;
+            
+            // Display map if coordinates exist
+            if(data.coordinates) {
+                const map = L.map('map').setView([data.coordinates.lat, data.coordinates.lng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+                L.marker([data.coordinates.lat, data.coordinates.lng]).addTo(map)
+                    .bindPopup(`<b>Estimated Location</b><br>${data.location}`)
+                    .openPopup();
+            }
+        }
+    </script>
+</body>
+  </html>
